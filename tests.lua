@@ -1,6 +1,6 @@
 local describe = require("least")
 
-describe("least lets you organize your tests by suite",function()
+describe("least lets you organize your tests by suite",function(_ENV)
     describe("least supports sub-suites and sub-suites with sub-suites, and so on",function()
         it("has basic assertions",function()
             assert(true)

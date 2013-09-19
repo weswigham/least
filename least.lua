@@ -126,6 +126,17 @@ local function unhook(suite)
     end
 end
 
+local function copy_G()
+    local ret = {}
+    for k,v in pairs(_G) do
+        if k~='_G' then
+            ret[k] = v
+        end
+    end
+    ret._G = ret
+    return ret
+end
+
 
 least.suite = function(desc, func)
     local self = {}
@@ -134,10 +145,28 @@ least.suite = function(desc, func)
     self.fails = {}
     
     hook(self)
-    function closure()
-        local describe,suite,test,it = least.suite,least.suite,least.test,least.test
+    
+    if setfenv then --Lua 5.1, yay~
+        local fake = {} 
+        setmetatable(fake,{
+            __index = _G
+        })
+        for k,v in pairs(least) do
+            fake[k] = v
+        end
+        setfenv(func,fake)
         func()
+    else --We need the topmost level to have _ENV as a named argument.. bleh
+        local fake = {} 
+        setmetatable(fake,{
+            __index = _G
+        })
+        for k,v in pairs(least) do
+            fake[k] = v
+        end
+        func(fake)
     end
+    
     unhook(self)
     
     if self.fails[1] then
@@ -156,14 +185,14 @@ least.suite = function(desc, func)
     return self
 end
 
+least.describe = least.suite
+least.it = least.test
+
 local __suite = {
     __call = function(self, desc, func)
         return least.suite(desc, func)
     end
 }
 setmetatable(least,__suite)
-
-least.describe = least.suite
-least.it = least.test
 
 return least
