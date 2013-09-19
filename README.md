@@ -41,38 +41,38 @@ Additionally, a closure is created when calling your testing functions, giving t
 ####Functions
 ######least.describe
 ```lua
-least.describe( description, function )
-least.suite   ( description, function )
+least.describe ( description, func )
+least.suite    ( description, func )
 ```
 In least, 'suite' and 'describe' are synonymous.
 
 ######least.it
 ```lua
-least.test( description, function )
-least.it  ( description, function )
-least.test.should.pass( description, function )
-least.it.should.pass  ( description, function )
+least.test ( description, func )
+least.it   ( description, func )
+least.test.should.pass ( description, func )
+least.it.should.pass   ( description, func )
 ```
 As are 'test' and 'it'. You can use whichever fits your preference.
 
 ######least.it.should.fail
 ```lua
-least.test.should.fail( description, function )
-least.it.should.fail  ( description, function )
+least.test.should.fail ( description, func )
+least.it.should.fail   ( description, func )
 ```
 
 ######least.assert
 ```lua
-least.assert( statement )
-least.assert.truthy( statement )
+least.assert ( statement )
+least.assert.truthy ( statement )
 ```
 
 ######least.assert.falsy
 ```lua
-least.assert.falsy( statement )
+least.assert.falsy ( statement )
 ```
 
 ######least.assert.isNil
 ```lua
-least.assert.isNil( statement )
+least.assert.isNil ( statement )
 ```
