@@ -14,7 +14,7 @@ And start testing!
 ```lua
 local describe = require("least")
 
-describe("least lets you organize your tests by suite",function()
+describe("least lets you organize your tests by suite",function(_ENV)
     describe("least supports sub-suites and sub-suites with sub-suites, and so on",function()
         it("has basic assertions",function()
             assert(true)
@@ -35,9 +35,9 @@ end)
 ```
 You might notice that I import the module as the describe function; this is because the module conviently maps its call attribute to the least.describe function.
 
-Additionally, a closure is created when calling your testing functions, giving them access to all of the functions below without the least namespace.
+Additionally, a fake environment is created when calling your testing functions, giving them access to all of the functions below without the least namespace.
 
-
+You may notice the _ENV argument to the topmost function; this is only required to create the fake environment in lua 5.2. Otherwise, it may be omitted.
 ####Functions
 ######least.describe
 ```lua
