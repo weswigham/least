@@ -38,6 +38,11 @@ You might notice that I import the module as the describe function; this is beca
 Additionally, a fake environment is created when calling your testing functions, giving them access to all of the functions below without the least namespace.
 
 You may notice the _ENV argument to the topmost function; this is only required to create the fake environment in lua 5.2. Otherwise, it may be omitted.
+
+####Output
+By default, least prints out any failed tests, asserts, or suites, and a quick dot-summary at the end of each suite. You can turn off the printing of dots on successful tests by setting least.quiet to true.
+
+
 ####Functions
 ######least.describe
 ```lua
