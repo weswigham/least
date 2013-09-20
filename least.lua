@@ -2,6 +2,31 @@ local least = {}
 
 local active_suites = {}
 
+local esc = string.char(27)
+local color = {
+    reset   = esc.."[0m",
+    bold   = esc.."[1m",
+    dim     = esc.."[2m",
+    under   = esc.."[4m",
+    blink   = esc.."[5m",
+    rev     = esc.."[7m",
+    hiddn   = esc.."[8m",
+    black   = esc.."[30m",
+    r       = esc.."[31m",
+    g       = esc.."[32m",
+    y       = esc.."[33m",
+    b       = esc.."[34m",
+    m       = esc.."[35m",
+    c       = esc.."[36m",
+    w       = esc.."[37m"
+}
+
+if not ((package.config:sub(1,1)=='\\' and os.getenv("ANSICON")) or package.config:sub(1,1)=='/') then --we lack console color support
+    for k,v in pairs(color) do
+        color[k] = ""
+    end
+end
+
 local active_test
 
 local function getstackplace()
@@ -14,6 +39,8 @@ local function getstackplace()
     end
     return res
 end
+
+least.quiet = false
 
 least.assert = {}
 least.assert.isNil = function(statement)
@@ -111,6 +138,12 @@ local __test = {
         return least.test.should.pass(desc, func)
     end
 }
+setmetatable(least.test.should,__test)
+local __test = {
+    __call = function(self, desc, func)
+        return least.test.should.pass(desc, func)
+    end
+}
 setmetatable(least.test,__test)
 
 local function hook(suite)
@@ -125,18 +158,6 @@ local function unhook(suite)
         end
     end
 end
-
-local function copy_G()
-    local ret = {}
-    for k,v in pairs(_G) do
-        if k~='_G' then
-            ret[k] = v
-        end
-    end
-    ret._G = ret
-    return ret
-end
-
 
 least.suite = function(desc, func)
     local self = {}
@@ -169,17 +190,32 @@ least.suite = function(desc, func)
     
     unhook(self)
     
+    local out = ""
+    local bull = "•"
+    local fbull = color.r..color.bold..bull..color.reset
+    local pbull = color.g..bull..color.reset
     if self.fails[1] then
-        print("Suite Failed - "..self.desc.."\nFailed Test(s):")
+        print(color.r.."Suite Failed"..color.reset.." - "..self.desc.."\n"..color.y.."Failed Test(s):"..color.reset)
         for k,v in ipairs(self.fails) do
-            print("\t"..v.desc.."\n\t\tFailed Asserts:")
+            out = out..fbull
+            print("\t"..color.b..v.desc.."\n\t\t"..color.y.."Failed Asserts:"..color.reset)
             for k,test in ipairs(v.fails) do
                 print("\t\t"..test.line)
             end
             if v.error then 
-                print("\tErrors: "..v.error)
+                print("\t"..color.r..color.bold.."Errors: "..color.reset..v.error)
             end
         end
+    end
+    
+    for k,v in ipairs(self.sucesses) do
+        out = out..pbull
+    end
+    out = out .. (" ("..(#self.sucesses).."/"..(#self.sucesses+#self.fails)..")")
+    out = "\t"..out
+    
+    if not least.quiet then
+        print(out)
     end
     
     return self
