@@ -200,7 +200,7 @@ least.suite = function(desc, func)
             out = out..fbull
             print("\t"..color.b..v.desc.."\n\t\t"..color.y.."Failed Asserts:"..color.reset)
             for k,test in ipairs(v.fails) do
-                print("\t\t"..test.line)
+                print("\t\t"..(test.line or "Subsuite Failure"))
             end
             if v.error then 
                 print("\t"..color.r..color.bold.."Errors: "..color.reset..v.error)
@@ -216,6 +216,17 @@ least.suite = function(desc, func)
     
     if not least.quiet then
         print(out)
+    end
+    
+    --Make subsuites count as one 'dot' and prevent extra, unneeded prints
+    for k,v in ipairs(active_suites) do
+        if v~=self then
+            if self.fails[1] then
+                table.insert(v.fails, self)
+            else
+                table.insert(v.sucesses, self)
+            end
+        end
     end
     
     return self
