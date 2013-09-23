@@ -50,7 +50,6 @@ least.assert.isNil = function(statement)
         table.insert(active_test.sucesses,result)
     else
         table.insert(active_test.fails,result)
-        active_test.passed = false
     end
 end
 least.assert.falsey = function(statement)
@@ -60,7 +59,6 @@ least.assert.falsey = function(statement)
         table.insert(active_test.sucesses,result)
     else
         table.insert(active_test.fails,result)
-        active_test.passed = false
     end
 end
 least.assert.truthy = function(statement)
@@ -70,7 +68,6 @@ least.assert.truthy = function(statement)
         table.insert(active_test.sucesses,result)
     else
         table.insert(active_test.fails,result)
-        active_test.passed = false
     end
     return result
 end
@@ -88,21 +85,20 @@ least.test.should.pass = function(desc, func)
     self.desc = desc
     self.sucesses = {}
     self.fails = {}
-    self.passed = true
     
     active_test = self
     
     local good, err = pcall(func)
     if not good then
-        self.passed = false
         self.error = err
     end
     
-    for k,v in ipairs(active_suites) do
-        if self.passed then
-            table.insert(v.sucesses,self)
+    local parent = active_suites[#active_suites]
+    if parent and parent ~= self then
+        if (not self.fails[1]) and (not self.error) then
+            table.insert(parent.sucesses,self)
         else
-            table.insert(v.fails,self)
+            table.insert(parent.fails,self)
         end
     end
     
@@ -113,50 +109,40 @@ least.test.should.fail = function(desc, func)
     self.desc = desc
     self.sucesses = {}
     self.fails = {}
-    self.passed = true
     
     active_test = self
     
     local good, err = pcall(func)
     if not good then
-        self.passed = false
         self.error = err
     end
     
-    for k,v in ipairs(active_suites) do
-        if self.passed then
-            table.insert(v.fails,self)
+    local parent = active_suites[#active_suites]
+    if parent and parent ~= self then
+        if (self.fails[1]) and (not self.error) then
+            table.insert(parent.sucesses,self)
         else
-            table.insert(v.sucesses,self)
+            table.insert(parent.fails,self)
         end
     end
     
     active_test = nil
 end
+
 local __test = {
     __call = function(self, desc, func)
         return least.test.should.pass(desc, func)
     end
 }
 setmetatable(least.test.should,__test)
-local __test = {
-    __call = function(self, desc, func)
-        return least.test.should.pass(desc, func)
-    end
-}
 setmetatable(least.test,__test)
 
-local function hook(suite)
+local function hook(suite) --push!
     table.insert(active_suites, suite)
 end
 
-local function unhook(suite)
-    for k,v in ipairs(active_suites) do
-        if v==suite then
-            table.remove(active_suites, k)
-            return
-        end
-    end
+local function unhook(suite) --pop!
+    table.remove(active_suites)
 end
 
 least.suite = function(desc, func)
@@ -200,7 +186,12 @@ least.suite = function(desc, func)
             out = out..fbull
             print("\t"..color.b..v.desc.."\n\t\t"..color.y.."Failed Asserts:"..color.reset)
             for k,test in ipairs(v.fails) do
-                print("\t\t"..(test.line or "Subsuite Failure"))
+                if test.line then
+                    print("\t\t"..(test.line))
+                else
+                    print("\t\tSub-suite failure, see above...")
+                    break;
+                end
             end
             if v.error then 
                 print("\t"..color.r..color.bold.."Errors: "..color.reset..v.error)
@@ -208,14 +199,19 @@ least.suite = function(desc, func)
         end
     end
     
-    for k,v in ipairs(self.sucesses) do
-        out = out..pbull
-    end
-    out = out .. (" ("..(#self.sucesses).."/"..(#self.sucesses+#self.fails)..")")
-    out = "\t"..out
+    local parent = active_suites[#active_suites]
+    if (not parent) or parent == self then
     
-    if not least.quiet then
-        print(out)
+        out = color.c.."Top-level completion:\n\t"..color.reset .. out
+        for k,v in ipairs(self.sucesses) do
+            out = out..pbull
+        end
+        out = out .. (" ("..(#self.sucesses).."/"..(#self.sucesses+#self.fails)..")")
+        
+        if not least.quiet then
+            print(out)
+        end
+    
     end
     
     --Make subsuites count as one 'dot' and prevent extra, unneeded prints
