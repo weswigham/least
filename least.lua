@@ -20,6 +20,9 @@ local color = {
     c       = esc.."[36m",
     w       = esc.."[37m"
 }
+local bull = "•"
+local fbull = color.r..color.bold..bull..color.reset
+local pbull = color.g..bull..color.reset
 
 if not ((package.config:sub(1,1)=='\\' and os.getenv("ANSICON")) or package.config:sub(1,1)=='/') then --we lack console color support
     for k,v in pairs(color) do
@@ -97,8 +100,12 @@ least.test.should.pass = function(desc, func)
     if parent and parent ~= self then
         if (not self.fails[1]) and (not self.error) then
             table.insert(parent.sucesses,self)
+            active_suites[1].dots = active_suites[1].dots .. pbull
+            active_suites[1].sucesses[-1] = active_suites[1].sucesses[-1] + 1
         else
             table.insert(parent.fails,self)
+            active_suites[1].dots = active_suites[1].dots .. fbull
+            active_suites[1].fails[-1] = active_suites[1].fails[-1] + 1
         end
     end
     
@@ -121,8 +128,12 @@ least.test.should.fail = function(desc, func)
     if parent and parent ~= self then
         if (self.fails[1]) and (not self.error) then
             table.insert(parent.sucesses,self)
+            active_suites[1].dots = active_suites[1].dots .. pbull
+            active_suites[1].sucesses[-1] = active_suites[1].sucesses[-1] + 1
         else
             table.insert(parent.fails,self)
+            active_suites[1].dots = active_suites[1].dots .. fbull
+            active_suites[1].fails[-1] = active_suites[1].fails[-1] + 1
         end
     end
     
@@ -149,7 +160,10 @@ least.suite = function(desc, func)
     local self = {}
     self.desc = desc
     self.sucesses = {}
+    self.sucesses[-1] = 0
     self.fails = {}
+    self.fails[-1] = 0
+    self.dots = ""
     
     hook(self)
     
@@ -176,20 +190,19 @@ least.suite = function(desc, func)
     
     unhook(self)
     
-    local out = ""
-    local bull = "•"
-    local fbull = color.r..color.bold..bull..color.reset
-    local pbull = color.g..bull..color.reset
     if self.fails[1] then
         print(color.r.."Suite Failed"..color.reset.." - "..self.desc.."\n"..color.y.."Failed Test(s):"..color.reset)
         for k,v in ipairs(self.fails) do
-            out = out..fbull
-            print("\t"..color.b..v.desc.."\n\t\t"..color.y.."Failed Asserts:"..color.reset)
+            local out = "\t"..color.b..v.desc.."\n\t\t"..color.y.."Failed Asserts:"..color.reset
             for k,test in ipairs(v.fails) do
                 if test.line then
-                    print("\t\t"..(test.line))
+                    if out then
+                        print(out)
+                        out = nil
+                    end
+                    print("\t\t"..test.line)
                 else
-                    print("\t\tSub-suite failure, see above...")
+                    print(color.r.."\t\tSub-suite failure, see above: "..color.reset..color.b..v.desc:sub(1,20).."..."..color.reset)
                     break;
                 end
             end
@@ -202,11 +215,8 @@ least.suite = function(desc, func)
     local parent = active_suites[#active_suites]
     if (not parent) or parent == self then
     
-        out = color.c.."Top-level completion:\n\t"..color.reset .. out
-        for k,v in ipairs(self.sucesses) do
-            out = out..pbull
-        end
-        out = out .. (" ("..(#self.sucesses).."/"..(#self.sucesses+#self.fails)..")")
+        local out = color.c.."Top-level completion:\n\t"..color.reset
+        out = self.dots .. (" ("..(self.sucesses[-1]).."/"..(self.sucesses[-1]+self.fails[-1])..")")
         
         if not least.quiet then
             print(out)
@@ -214,7 +224,6 @@ least.suite = function(desc, func)
     
     end
     
-    --Make subsuites count as one 'dot' and prevent extra, unneeded prints
     for k,v in ipairs(active_suites) do
         if v~=self then
             if self.fails[1] then
